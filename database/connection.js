@@ -5,7 +5,7 @@ dotenv.config();
 
 const connection = async () => {
     try {
-        await connect(process.env.MONGODB_URI);
+        await connect(process.env.MONGO_URI);
         console.log("MongoDB connected to red_social");
     } catch (error) {
         console.error("Error connecting to MongoDB:", error.message);
