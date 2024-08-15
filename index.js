@@ -2,6 +2,8 @@ import express from "express";
 import connection from "./database/connection.js";
 import bodyParser from "body-parser";
 import cors from "cors";
+import UserRoutes from "./routes/user.js";
+
 // Mensaje de bienvenida para verificar que ejecuta bien la API de Node
 console.log("API Node is running...");
 
@@ -18,6 +20,10 @@ app.use(cors());
 //Decodificar los datos desde los formularios para convertirlos en JS
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Configurar rutas del aplicativo
+
+app.use('/api/user', UserRoutes);
 
 // Rutas de la API
 
