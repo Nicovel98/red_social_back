@@ -1,7 +1,9 @@
-//Metodo de prueba
+import { Router } from "express";
+const router = Router();
+import { testFollow } from "../controllers/follow.js";
 
-export const testUser = (req, res) => {
-    return res.status(200).send({
-        message: "User test successfully"
-    });
-};
+// Definir las rutas
+router.get('/test-follow', testFollow);
+
+// Exportar el Router
+export default router;

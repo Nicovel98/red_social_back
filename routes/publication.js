@@ -1,7 +1,9 @@
-//Metodo de prueba
+import { Router } from "express";
+const router = Router();
+import { testPublication } from "../controllers/publication.js";
 
-export const testUser = (req, res) => {
-    return res.status(200).send({
-        message: "User test successfully"
-    });
-};
+// Definir las rutas
+router.get('/test-publication', testPublication);
+
+// Exportar el Router
+export default router;
