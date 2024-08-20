@@ -1,47 +1,65 @@
-//Acciones de prueba
+import User from "../models/user.js";
+import bcrypt from "bcrypt";
 
-export const testUser = (req, res) => {
-    return res.status(200).send({
-        message: "User test successfully"
-    });
-};
-
-//Metodo Registro de Usuario
+// Método Registro de Usuarios
 export const registerUser = async (req, res) => {
-    return res.status(200).send({
-        message: "User registration test successfully"
-    });
+    try {
+        // Obtener los datos de la petición
+        let params = req.body;
 
-
-    /* try {
-        const { name, last_name, nickname, email, password } = req.body;
-
-        // Validar que los datos sean correctos
-        if (!name || !last_name || !nickname || !email || !password) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        // Verificar que el email no esté en uso
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-
-        // Crear el nuevo usuario
-        const newUser = new User({ name, last_name, nickname, email, password });
-        await newUser.save();
-
-        // Enviar una respuesta de éxito
-        return res.status(201).json
-            ({
-                message: "User registered successfully",
-                user: newUser
+        // Validaciones de los datos obtenidos
+        if (!params.name || !params.last_name || !params.email || !params.password || !params.nickname) {
+            return res.status(400).send({
+                status: "error",
+                message: "Faltan datos por enviar"
             });
+        }
+
+        // Crear el objeto de usuario con los datos que ya validamos
+        let user_to_save = new User(params);
+
+        // Busca si ya existe un usuario con el mismo email o nick
+        const existingUser = await User.findOne({
+            $or: [
+                { email: user_to_save.email.toLowerCase() },
+                { nickname: user_to_save.nickname.toLowerCase() }
+            ]
+        });
+
+        // Si encuentra un usuario, devuelve un mensaje indicando que ya existe
+        if (existingUser) {
+            return res.status(409).send({
+                status: "error",
+                message: "!El usuario ya existe!"
+            });
+        }
+
+        // Cifra la contraseña antes de guardarla en la base de datos
+        const salt = await bcrypt.genSalt(10); // Genera una sal para cifrar la contraseña
+        const hashedPassword = await bcrypt.hash(user_to_save.password, salt); // Cifra la contraseña
+        user_to_save.password = hashedPassword; // Asigna la contraseña cifrada al usuario
+
+        // Guardar el usuario en la base de datos
+        await user_to_save.save();
+
+        // Devolver el usuario registrado
+        return res.status(200).json({
+            status: "success",
+            message: "Registro de usuario exitoso",
+            params,
+            user_to_save
+        });
+
 
     } catch (error) {
-        console.error("Error registering user:", error.message);
-        /* res.status(500).send("Server Error"); */
-    //throw new Error("Error registering user!");
-    //}
-    //Fin Metodo Registro de Usuario */
+        // Manejo de errores
+        console.log("Error en el registro de usuario:", error);
+        // Devuelve mensaje de error
+        return res.status(500).send({
+            status: "error",
+            message: "Error en el registro de usuario"
+        });
+    }
 }
+
+// Método Login de Usuarios
