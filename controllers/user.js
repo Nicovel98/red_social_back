@@ -1,5 +1,13 @@
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
+import { createToken } from "../services/jwt.js";
+
+// Metodo de prueba de usuario para el Middleware
+export const testUser = (req, res) => {
+    return res.status(200).send({
+        message: "User test successfully"
+    });
+}
 
 // Método Registro de Usuarios
 export const registerUser = async (req, res) => {
@@ -99,12 +107,24 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // Devolver el usuario logueado
+        // Crear un token para el usuario
+        const token = createToken(user);
+
+        // Añadir el token al usuario
+        user.token = token;
+        await user.save();
+
+        // Eliminar la contraseña del usuario para devolver solo los datos necesarios
+        user.password = null;
+
+        // Devolver los datos del usuario logueado
         return res.status(200).json({
             status: "success",
             message: "Login exitoso",
+            token,
             user
         });
+
     } catch (error) {
         // Manejo de errores
         console.log("Error en el login de usuario:", error);
