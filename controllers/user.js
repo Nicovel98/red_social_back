@@ -115,14 +115,22 @@ export const loginUser = async (req, res) => {
         await user.save();
 
         // Eliminar la contraseña del usuario para devolver solo los datos necesarios
-        user.password = null;
+        //user.password = null;
 
         // Devolver los datos del usuario logueado
         return res.status(200).json({
             status: "success",
             message: "Login exitoso",
             token,
-            user
+            user: {
+                id: user._id,
+                name: user.name,
+                last_name: user.last_name,
+                email: user.email,
+                nickname: user.nick,
+                image: user.image,
+                created_at: user.created_at
+            }
         });
 
     } catch (error) {
@@ -132,6 +140,44 @@ export const loginUser = async (req, res) => {
         return res.status(500).send({
             status: "error",
             message: "Error en el login de usuario"
+        });
+    }
+}
+
+// Método para mostrar el perfil de usuario
+export const showUserProfile = async (req, res) => {
+    try {
+        // Obtener el id del usuario de la petición
+        const userId = req.params.id;
+
+        // Busca un usuario con el id que se pasa en la petición
+        const user = await User.findById(userId).select('-password -role -email -__v');
+
+        // Si no encuentra un usuario, devuelve un mensaje indicando que el usuario no existe
+        if (!user) {
+            return res.status(404).send({
+                status: "error",
+                message: "!El usuario no existe!"
+            });
+        }
+
+        // Eliminar la contraseña del usuario para devolver solo los datos necesarios
+        // user.password = null;
+
+        // Devolver los datos del usuario
+        return res.status(200).json({
+            status: "success",
+            message: "Perfil del usuario",
+            user
+        });
+
+    } catch (error) {
+        // Manejo de errores
+        console.log("Error al mostrar el perfil de usuario:", error);
+        // Devuelve mensaje de error
+        return res.status(500).send({
+            status: "error",
+            message: "Error al mostrar el perfil de usuario"
         });
     }
 }
