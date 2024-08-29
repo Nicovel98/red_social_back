@@ -230,3 +230,91 @@ export const showUserList = async (req, res) => {
         });
     }
 }
+
+// Método para editar los datos del usuario
+export const editUserProfile = async (req, res) => {
+    try {
+        // Obtener el id del usuario de la petición
+        let userIdentity = req.user;
+        //console.log(userIdentity);
+        // Obtener los datos de la petición
+        let userToUpdate = req.body;
+        //console.log(userToUpdate);
+        // Eliminar campos de la petición sobrantes
+        delete userToUpdate.expiresAt;
+        delete userToUpdate.role;
+
+        // Comprobar si el usuario ya existe
+        const currentUser = await User.findById(userIdentity.id).exec();
+        //console.log(currentUser);
+        if (!currentUser) {
+            return res.status(404).send({
+                status: "error",
+                message: "No existe este usuario"
+            });
+        }
+
+        const users = await User.find({
+            $or: [
+                { email: userToUpdate.email },
+                { nickname: userToUpdate.nickname }
+            ]
+        }).exec();
+        //console.log(users);
+        // Comprobar si el usuario esta duplicado y evitar conflictos
+        const isDuplicateUser = users.some(user => {
+            return user && user._id.toString() !== userIdentity.id;
+        });
+
+        if (isDuplicateUser) {
+            return res.status(400).send({
+                status: "error",
+                message: "Solo se puede actualizar los datos del usuario autenticado"
+            });
+        }
+
+        // Cifrar la contraseña si se proporciona
+        if (userToUpdate.password) {
+            try {
+                let pwd = await bcrypt.hash(userToUpdate.password, 10);
+                userToUpdate.password = pwd;
+                //console.log(pwd);
+            } catch (hashError) {
+                return res.status(500).send({
+                    status: "error",
+                    message: "Error al cifrar la contraseña"
+                });
+            }
+        } else {
+            delete userToUpdate.password;
+        }
+
+        // Actualizar los datos del usuario
+        let userUpdated = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true });
+        //console.log(userUpdated);
+        if (!userUpdated) {
+            return res.status(400).send({
+                status: "error",
+                message: "Error al actualizar usuario"
+            });
+        }
+
+
+
+        // Devolver los datos del usuario editado
+        return res.status(200).send({
+            status: "success",
+            message: "Datos del usuario editados correctamente",
+            user: userUpdated
+        });
+
+    } catch (error) {
+        // Manejo de errores
+        console.log("Error al editar los datos del usuario:", error);
+        // Devuelve mensaje de error
+        return res.status(500).send({
+            status: "error",
+            message: "Error al editar los datos del usuario"
+        });
+    }
+}

@@ -1,8 +1,11 @@
 import jwt from 'jwt-simple';
 import moment from 'moment';
+import dotenv from 'dotenv';
 
+// Cargar variables de entorno desde el archivo .env
+dotenv.config();
 // Configuración JWT
-const secretKey = 'secret';
+const secretKey = process.env.SECRET_KEY;
 const expiresIn = '30'; // Tiempo de expiración del token en días
 
 // Función para generar un token JWT
