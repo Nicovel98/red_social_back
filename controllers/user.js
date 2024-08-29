@@ -1,6 +1,8 @@
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import { createToken } from "../services/jwt.js";
+import fs from "fs";
+import path from "path";
 
 // Metodo de prueba de usuario para el Middleware
 export const testUser = (req, res) => {
@@ -299,8 +301,6 @@ export const editUserProfile = async (req, res) => {
             });
         }
 
-
-
         // Devolver los datos del usuario editado
         return res.status(200).send({
             status: "success",
@@ -318,3 +318,96 @@ export const editUserProfile = async (req, res) => {
         });
     }
 }
+
+// Metodo para subir un avatar y actualizar el campo image del usuario
+export const uploadAvatar = async (req, res) => {
+    try {
+        // Obtener el archivo de la imagen y comprobar si existe
+        if (!req.file) {
+            return res.status(400).send({
+                status: "error",
+                message: "No se ha subido ningún archivo"
+            });
+        }
+        // Validar el formato del archivo (debe ser una imagen)
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+        if (!validExtensions.includes(ext)) {
+            const filePath = req.file.path;
+            fs.unlinkSync(filePath); // Borrar el archivo si no es una imagen
+            return res.status(400).send({
+                status: "error",
+                message: "El archivo debe ser una imagen (JPG, JPEG, PNG o GIF)"
+            });
+        }
+        // Comprobar tamaño del archivo (pj: máximo 1MB)
+        const fileSize = req.file.size;
+        const maxFileSize = 1 * 1024 * 1024; // 1 MB
+        // Comprobar tamaño del archivo y lo borra si se excede en tamaño
+        if (fileSize > maxFileSize) {
+            const filePath = req.file.path;
+            fs.unlinkSync(filePath);
+            return res.status(400).send({
+                status: "error",
+                message: "El tamaño del archivo excede el límite (máx 1 MB)"
+            });
+        }
+        // Guardar la imagen en la BD
+        const userUpdated = await User.findOneAndUpdate(
+            { _id: req.user.id },
+            { image: req.file.filename },
+            { new: true }
+        );
+        // verificar si la actualización fue exitosa
+        if (!userUpdated) {
+            return res.status(500).send({
+                status: "error",
+                message: "Error en la subida de la imagen"
+            });
+        }
+        // Devolver respuesta exitosa
+        return res.status(200).json({
+            status: "success",
+            message: "User avatar updated successfully",
+            user: userUpdated,
+            file: req.file
+        });
+    } catch (error) {
+        // Manejo de errores
+        console.log("Error al subir el avatar del usuario:", error);
+        // Devuelve mensaje de error
+        return res.status(500).send({
+            status: "error",
+            message: "Error al subir el avatar del usuario"
+        });
+    }
+}
+
+// Método para mostrar el avatar
+export const showAvatar = async (req, res) => {
+    try {
+        // Obtener el nombre del archivo de la imagen
+        const fileName = req.params.file;
+        // Obtener la ruta del directorio de imágenes
+        const avatarDir = path.join("./uploads/avatars/");
+        // Comprobar si el archivo existe
+        const filePath = path.join(avatarDir, fileName);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).send({
+                status: "error",
+                message: "No se ha encontrado el avatar"
+            });
+        }
+        // Devolver el archivo de imagen
+        return res.sendFile(path.resolve(filePath));
+    } catch (error) {
+        // Manejo de errores
+        console.log("Error al mostrar el avatar:", error);
+        // Devuelve mensaje de error
+        return res.status(500).send({
+            status: "error",
+            message: "Error al mostrar el avatar"
+        });
+    }
+}
+
