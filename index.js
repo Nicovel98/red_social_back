@@ -5,6 +5,9 @@ import cors from "cors";
 import UserRoutes from "./routes/user.js";
 import PublicationRoutes from "./routes/publication.js";
 import FollowRoutes from "./routes/follow.js";
+import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 // Mensaje de bienvenida para verificar que ejecuta bien la API de Node
 console.log("API Node is running...");
@@ -16,8 +19,13 @@ connection();
 const app = express();
 const port = process.env.PORT || 3900;
 
-// Configurar Cors
-app.use(cors());
+// Configurar cors para hacer las peticiones correctamente
+app.use(cors({
+    origin: '*', // Permitir solicitudes desde cualquier origen
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Métodos permitidos
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+}));
 
 //Decodificar los datos desde los formularios para convertirlos en JS
 app.use(bodyParser.json());
