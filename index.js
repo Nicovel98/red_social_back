@@ -39,15 +39,14 @@ app.use('/api/follow', FollowRoutes);
 
 // Rutas de la API
 
-app.get('/ruta-prueba', (req, res) => {
-    return res.status(200).json(
-        {
-            'id': 1,
-            'name': 'Nico',
-            'username': 'Nicovel'
-        }
-    );
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Configuración para servir archivos estáticos (imágenes de avatar)
+app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
+
+// Configuración para servir archivos estáticos (imágenes de publicaciones)
+app.use('/uploads/publications', express.static(path.join(__dirname, 'uploads', 'publications')));
 
 // Configuración del servidor de Node
 app.listen(port, () => {
