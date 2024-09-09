@@ -119,7 +119,7 @@ export const saveFollow = async (req, res) => {
 export const unfollow = async (req, res) => {
     try {
         // Obtener el Id del usuario indentificado
-        const userId = req.user.userId;
+        const userId = req.user.id;
 
         // Obtener el Id del usuario que sigo y quiero dejar de seguir
         const followedId = req.params.id;
