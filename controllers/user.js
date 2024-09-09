@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { createToken } from "../services/jwt.js";
 import fs from "fs";
 import path from "path";
+import { followThisUser } from "../services/followServices.js";
 
 // Metodo de prueba de usuario para el Middleware
 export const testUser = (req, res) => {
@@ -152,11 +153,22 @@ export const showUserProfile = async (req, res) => {
         // Obtener el id del usuario de la petición
         const userId = req.params.id;
 
+        //Verificar si el id del usuario autenticado esta disponible
+        if (!req.user || !req.user.id) {
+            return res.status(401).send({
+                status: "Error",
+                message: "Usuario no autenticado"
+            });
+        }
+
+        // Información del seguimiento
+        const followInfo = await followThisUser(req.user.id, userId);
+
         // Busca un usuario con el id que se pasa en la petición
-        const user = await User.findById(userId).select('-password -role -email -__v');
+        const userProfile = await User.findById(userId).select('-password -role -email -__v');
 
         // Si no encuentra un usuario, devuelve un mensaje indicando que el usuario no existe
-        if (!user) {
+        if (!userProfile) {
             return res.status(404).send({
                 status: "error",
                 message: "!El usuario no existe!"
@@ -166,11 +178,11 @@ export const showUserProfile = async (req, res) => {
         // Eliminar la contraseña del usuario para devolver solo los datos necesarios
         // user.password = null;
 
-        // Devolver los datos del usuario
+        // Devolver la información del perfil del usuario
         return res.status(200).json({
             status: "success",
-            message: "Perfil del usuario",
-            user
+            user: userProfile,
+            followInfo
         });
 
     } catch (error) {
