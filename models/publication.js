@@ -18,8 +18,7 @@ const PublicationSchema = Schema({
     }
 });
 
-
 // Añadir pluggin de paginación
 PublicationSchema.plugin(mongoosePaginate);
-
+// Se crea en la base de datos la colección publication
 export default model("Publication", PublicationSchema, "publication");

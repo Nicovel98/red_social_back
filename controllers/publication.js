@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { followUserIds } from "../services/followServices.js"
 
-
 // Método de prueba
 export const testPublication = (req, res) => {
     return res.status(200).send({
@@ -30,7 +29,7 @@ export const savePublication = async (req, res) => {
         let newPublication = new Publication(params);
 
         // Agregar la información del usuario autenticado al objeto de la nueva publicación
-        newPublication.user_id = req.user.userId;
+        newPublication.user_id = req.user.id;
 
         // Guardar la nueva publicación en la BD
         const publicationStored = await newPublication.save();
@@ -43,7 +42,7 @@ export const savePublication = async (req, res) => {
             });
         }
 
-        // Devolver respuesta exitosa 
+        // Devolver respuesta exitosa
         return res.status(200).send({
             status: "success",
             message: "¡Publicación creada con éxito!",
@@ -78,7 +77,7 @@ export const showPublication = async (req, res) => {
             });
         }
 
-        // Devolver respuesta exitosa 
+        // Devolver respuesta exitosa
         return res.status(200).send({
             status: "success",
             message: "Publicación encontrada",
@@ -101,7 +100,7 @@ export const deletePublication = async (req, res) => {
         const publicationId = req.params.id;
 
         // Encontrar y eliminar la publicación
-        const publicationDeleted = await Publication.findOneAndDelete({ user_id: req.user.userId, _id: publicationId }).populate('user_id', 'name last_name');
+        const publicationDeleted = await Publication.findOneAndDelete({ user_id: req.user.id, _id: publicationId }).populate('user_id', 'name last_name');
 
         // Verificar si se encontró y eliminó la publicación
         if (!publicationDeleted) {
@@ -169,14 +168,14 @@ export const publicationsUser = async (req, res) => {
             total: publications.totalDocs,
             pages: publications.totalPages,
             page: publications.page,
-            limit_items_ppage: publications.limit
+            limit_items_page: publications.limit
         });
 
     } catch (error) {
         console.log("Error al mostrar la publicación:", error);
         return res.status(500).send({
             status: "error",
-            message: "Error al listar las publicación"
+            message: "Error al listar las publicaciones"
         });
     }
 }
@@ -250,7 +249,7 @@ export const uploadMedia = async (req, res) => {
 
         // Si todo es correcto, se guarda en la BD
         const publicationUpdated = await Publication.findOneAndUpdate(
-            { user_id: req.user.userId, _id: publicationId },
+            { user_id: req.user.id, _id: publicationId },
             { file: req.file.filename },
             { new: true }
         );
@@ -317,16 +316,16 @@ export const feed = async (req, res) => {
         let itemsPerPage = req.query.limit ? parseInt(req.query.limit, 10) : 5;
 
         // Verificar que el usuario autenticado existe y tiene un userId
-        if (!req.user || !req.user.userId) {
+        if (!req.user || !req.user.id) {
             return res.status(404).send({
                 status: "error",
                 message: "Usuario no autenticado"
             });
         }
-
+        //console.log(req.user.id);
         // Obtener un array de IDs de los usuarios que sigue el usuario autenticado
         const myFollows = await followUserIds(req);
-
+        //console.log(myFollows);
         // Verificar que la lista de usuarios que sigo no esté vacía
         if (!myFollows.following || myFollows.following.length === 0) {
             return res.status(404).send({

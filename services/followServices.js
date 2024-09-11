@@ -4,7 +4,7 @@ import Follow from "../models/follow.js";
 export const followUserIds = async (req, res) => {
     try {
         // Obtener el ID del usuario autenticado
-        const identityUserId = req.user.userId;
+        const identityUserId = req.user.id;
 
         // En caso de no llegar el userID
         if (!identityUserId) {

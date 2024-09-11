@@ -2,7 +2,7 @@ import { Router } from "express";
 const router = Router();
 import {
     registerUser, loginUser, testUser, showUserProfile,
-    showUserList, editUserProfile, uploadAvatar, showAvatar
+    showUserList, editUserProfile, uploadAvatar, showAvatar, counters
 } from "../controllers/user.js";
 import { ensureAuth } from "../middlewares/auth.js";
 import multer from "multer";
@@ -30,7 +30,7 @@ router.get('/userlist/:page?', showUserList);
 router.put('/update', ensureAuth, editUserProfile);
 router.post('/upload-avatar', [ensureAuth, checkEntityExists(User, 'user_id'), uploads.single("file0")], uploadAvatar);
 router.get('/avatar/:file', showAvatar)
-
+router.get('/counters/:id?', ensureAuth, counters)
 
 // Exportar el Router
 export default router;
