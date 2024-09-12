@@ -204,7 +204,7 @@ export const showUserList = async (req, res) => {
         // Obtener los parámetros de la petición
         let page = parseInt(req.params.page) || 1;
         // Configurar los items por página
-        let limit = parseInt(req.query.limit) || 3;
+        let limit = parseInt(req.query.limit) || 10;
 
         // Busca todos los usuarios paginados
         const options = {
