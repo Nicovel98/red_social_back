@@ -2,6 +2,7 @@ import Publication from "../models/publication.js"
 import fs from "fs";
 import path from "path";
 import { followUserIds } from "../services/followServices.js"
+import { v2 as cloudinary } from 'cloudinary';
 
 // Método de prueba
 export const testPublication = (req, res) => {
@@ -195,62 +196,21 @@ export const uploadMedia = async (req, res) => {
             });
         }
 
-        // Comprobamos que existe el archivo en el body
+        // Verificar si se ha subido un archivo
         if (!req.file) {
-            return res.status(404).send({
+            return res.status(400).send({
                 status: "error",
                 message: "La petición no incluye la imagen"
             });
         }
 
-        // Obtener el nombre del archivo
-        let image = req.file.originalname;
+        // Obtener la URL de Cloudinary
+        const mediaUrl = req.file.path;
 
-        // Obtener la extensión del archivo
-        const imageSplit = image.split(".");
-        const extension = imageSplit[imageSplit.length - 1];
-
-        // Validar la extensión
-        if (!["png", "jpg", "jpeg", "gif"].includes(extension.toLowerCase())) {
-            //Borrar archivo subido
-            const invalidFilePath = req.file.path;
-            fs.unlinkSync(invalidFilePath);
-
-            return res.status(400).send({
-                status: "error",
-                message: "Extensión del archivo es inválida."
-            });
-        }
-
-        // Comprobar tamaño del archivo (pj: máximo 1MB)
-        const fileSize = req.file.size;
-        const maxFileSize = 1 * 1024 * 1024; // 1 MB
-
-        if (fileSize > maxFileSize) {
-            const largeFilePath = req.file.path;
-            fs.unlinkSync(largeFilePath);
-
-            return res.status(400).send({
-                status: "error",
-                message: "El tamaño del archivo excede el límite (máx 1 MB)"
-            });
-        }
-
-        // Verificar si el archivo realmente existe antes de proceder
-        const actualFilePath = path.resolve("./uploads/publications/", req.file.filename);
-        try {
-            fs.statSync(actualFilePath);
-        } catch (error) {
-            return res.status(404).send({
-                status: "error",
-                message: "El archivo no existe o hubo un error al verificarlo"
-            });
-        }
-
-        // Si todo es correcto, se guarda en la BD
-        const publicationUpdated = await Publication.findOneAndUpdate(
-            { user_id: req.user.id, _id: publicationId },
-            { file: req.file.filename },
+        // Si todo es correcto, actualizar la publicación con la URL de la imagen en Cloudinary
+        const publicationUpdated = await Publication.findByIdAndUpdate(
+            publicationId,
+            { file: mediaUrl },
             { new: true }
         );
 
@@ -266,10 +226,11 @@ export const uploadMedia = async (req, res) => {
             status: "success",
             message: "Archivo subido con éxito",
             publication: publicationUpdated,
-            file: req.file
+            file: mediaUrl
         });
 
     } catch (error) {
+        console.error("Error al subir el archivo a la publicación", error);
         return res.status(500).send({
             status: "error",
             message: "Error al subir el archivo a la publicación"
@@ -280,24 +241,25 @@ export const uploadMedia = async (req, res) => {
 // Método para mostrar el archivo subido a la publicación
 export const showMedia = async (req, res) => {
     try {
-        // Obtener el parámetro del archivo desde la url
-        const file = req.params.file;
+        // Obtener el id de la publicación
+        const publicationId = req.params.file;
 
-        // Crear el path real de la imagen
-        const filePath = `./uploads/publications/${file}`;
+        // Buscar la publicación en la base de datos
+        const publication = await Publication.findById(publicationId).select('file');
 
-        // Comprobar si existe el archivo
-        fs.stat(filePath, (error, exists) => {
-            if (!exists) {
-                return res.status(404).send({
-                    status: "error",
-                    message: "No existe la imagen"
-                });
-            }
-            // Si lo encuentra nos devolvueve un archivo
-            return res.sendFile(path.resolve(filePath));
+        // Verificar si la publicación existe y tiene un archivo
+        if (!publication || !publication.file) {
+            return res.status(404).send({
+                status: "error",
+                message: "No existe el archivo para esta publicación"
+            });
+        }
+
+        // Devolver la URL del archivo almacenado en Cloudinary
+        return res.status(200).json({
+            status: "success",
+            fileUrl: publication.file
         });
-
     } catch (error) {
         return res.status(500).send({
             status: "error",

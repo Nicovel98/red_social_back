@@ -1,9 +1,6 @@
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import { createToken } from "../services/jwt.js";
-import fs from "fs";
-import path from "path";
-import { followThisUser } from "../services/followServices.js";
 import Follow from "../models/follow.js";
 import Publication from "../models/publication.js";
 
@@ -336,40 +333,19 @@ export const editUserProfile = async (req, res) => {
 // Metodo para subir un avatar y actualizar el campo image del usuario
 export const uploadAvatar = async (req, res) => {
     try {
-        // Obtener el archivo de la imagen y comprobar si existe
+        // Verificar si se ha subido un archivo
         if (!req.file) {
             return res.status(400).send({
                 status: "error",
-                message: "No se ha subido ningún archivo"
+                message: "Error la petición no incluye la imagen"
             });
         }
-        // Validar el formato del archivo (debe ser una imagen)
-        const ext = path.extname(req.file.originalname).toLowerCase();
-        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-        if (!validExtensions.includes(ext)) {
-            const filePath = req.file.path;
-            fs.unlinkSync(filePath); // Borrar el archivo si no es una imagen
-            return res.status(400).send({
-                status: "error",
-                message: "El archivo debe ser una imagen (JPG, JPEG, PNG o GIF)"
-            });
-        }
-        // Comprobar tamaño del archivo (pj: máximo 1MB)
-        const fileSize = req.file.size;
-        const maxFileSize = 1 * 1024 * 1024; // 1 MB
-        // Comprobar tamaño del archivo y lo borra si se excede en tamaño
-        if (fileSize > maxFileSize) {
-            const filePath = req.file.path;
-            fs.unlinkSync(filePath);
-            return res.status(400).send({
-                status: "error",
-                message: "El tamaño del archivo excede el límite (máx 1 MB)"
-            });
-        }
+        // Obtener la URL del archivo subido a Cloudinary
+        const avatarUrl = req.file.path; // Esta propiedad contiene la URL de Cloudinary
         // Guardar la imagen en la BD
-        const userUpdated = await User.findOneAndUpdate(
-            { _id: req.user.id },
-            { image: req.file.filename },
+        const userUpdated = await User.findByIdAndUpdate(
+            req.user.userId,
+            { image: avatarUrl },
             { new: true }
         );
         // verificar si la actualización fue exitosa
@@ -384,7 +360,7 @@ export const uploadAvatar = async (req, res) => {
             status: "success",
             message: "User avatar updated successfully",
             user: userUpdated,
-            file: req.file
+            file: avatarUrl
         });
     } catch (error) {
         // Manejo de errores
@@ -400,27 +376,31 @@ export const uploadAvatar = async (req, res) => {
 // Método para mostrar el avatar
 export const showAvatar = async (req, res) => {
     try {
-        // Obtener el nombre del archivo de la imagen
-        const fileName = req.params.file;
-        // Obtener la ruta del directorio de imágenes
-        const avatarDir = path.join("./uploads/avatars/");
-        // Comprobar si el archivo existe
-        const filePath = path.join(avatarDir, fileName);
-        if (!fs.existsSync(filePath)) {
+        // Obtener el parámetro del archivo desde la url
+        const userId = req.params.file;
+
+        // Buscar al usuario en la base de datos para obtener la URL de Cloudinary
+        const user = await User.findById(userId).select('image');
+
+        // Verificar si el usuario existe y tiene una imagen
+        if (!user || !user.image) {
             return res.status(404).send({
                 status: "error",
-                message: "No se ha encontrado el avatar"
+                message: "No existe la imagen o el usuario"
             });
         }
-        // Devolver el archivo de imagen
-        return res.sendFile(path.resolve(filePath));
+
+        // Devolver la URL de la imagen desde Cloudinary
+        return res.status(200).json({
+            status: "success",
+            imageUrl: user.image // URL de Cloudinary almacenada en la BD
+        });
+
     } catch (error) {
-        // Manejo de errores
-        console.log("Error al mostrar el avatar:", error);
-        // Devuelve mensaje de error
+        console.log("Error al mostrar la imagen", error)
         return res.status(500).send({
             status: "error",
-            message: "Error al mostrar el avatar"
+            message: "Error al mostrar la imagen"
         });
     }
 }
